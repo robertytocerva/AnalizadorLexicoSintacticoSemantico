@@ -1,8 +1,10 @@
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 
-// REPL: lee hasta "yaquedo"
+// REPL: tras cuádruplos, ofrece generar .asm (8086 MASM DOS) y guardarlo en disco.
 public final class Principal {
     public static void main(String[] args) throws Exception {
         System.out.println("Escribe el código. Termina con una línea que contenga exactamente: yaquedo");
@@ -38,14 +40,30 @@ public final class Principal {
         System.out.println(NodoAST.aTexto(programa));
         System.out.println("\n" + ts.imprimir());
 
-        // 4) Preguntar por traducción a 3 direcciones
-        System.out.print("¿Desea traducir a código intermedio en cuádruplos? [s/n]: ");
+        // Cuádruplos
+        System.out.print("¿Traducir a cuádruplos? [s/n]: ");
         String resp = br.readLine();
+        List<GeneradorIntermedio.Cuadruplo> cuad = null;
         if (resp != null && resp.trim().toLowerCase().startsWith("s")) {
             GeneradorIntermedio gi = new GeneradorIntermedio();
-            List<GeneradorIntermedio.Cuadruplo> cod = gi.generar(programa);
+            cuad = gi.generar(programa);
             System.out.println();
-            System.out.println(GeneradorIntermedio.comoTexto(cod));
+            System.out.println(GeneradorIntermedio.comoTexto(cuad));
+        }
+
+        // ASM 8086
+        if (cuad != null) {
+            System.out.print("¿Generar archivo ASM 8086 (MASM) a partir de los cuádruplos? [s/n]: ");
+            String respAsm = br.readLine();
+            if (respAsm != null && respAsm.trim().toLowerCase().startsWith("s")) {
+                System.out.print("Ruta de salida (ej. C:\\\\temp\\\\programa.asm) o vacío para 'programa.asm': ");
+                String ruta = br.readLine();
+                if (ruta == null || ruta.trim().isEmpty()) ruta = "programa.asm";
+                GeneradorASM8086 gasm = new GeneradorASM8086(cuad, ts);
+                String asm = gasm.generarASM(programa.nombre);
+                java.nio.file.Files.writeString(java.nio.file.Path.of(ruta), asm);
+                System.out.println("ASM generado: " + ruta);
+            }
         }
     }
 }
